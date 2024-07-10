@@ -1,4 +1,5 @@
 using EFCore.Repo;
+using EFCore.WebAPI.Controllers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
