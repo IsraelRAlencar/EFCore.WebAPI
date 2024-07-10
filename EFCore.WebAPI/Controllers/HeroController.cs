@@ -1,6 +1,8 @@
 ﻿using EFCore.Domain;
 using EFCore.Repo;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace EFCore.WebAPI.Controllers
 {
@@ -18,7 +20,7 @@ namespace EFCore.WebAPI.Controllers
         public ActionResult Get() {
             try
             {
-                return Ok();
+                return Ok(new Hero());
             }
             catch (Exception ex) {
                 return BadRequest($"Erro: {ex}");
@@ -26,10 +28,31 @@ namespace EFCore.WebAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult Post(Hero value) {
+        public ActionResult Post(Hero model) {
             try
             {
-                return Ok();
+                _context.Heroes.Add(model);
+                _context.SaveChanges();
+
+                return Ok("Bazinga");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro: {ex}");
+            }
+        }
+
+        [HttpPut("{id}")]
+        public ActionResult Put(int id, Hero model) {
+            try
+            {
+                if (_context.Heroes.AsNoTracking().FirstOrDefault(h => h.Id == id) != null) {
+                    _context.Update(model);
+                    _context.SaveChanges();
+                    return Ok("Bazinga");
+                }
+
+                return Ok("Não encontrado");
             }
             catch (Exception ex)
             {
