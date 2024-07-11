@@ -23,7 +23,7 @@ namespace EFCore.WebAPI.Controllers
                 return Ok(new Hero());
             }
             catch (Exception ex) {
-                return BadRequest($"Erro: {ex}");
+                return BadRequest($"Error: {ex}");
             }
         }
 
@@ -38,7 +38,7 @@ namespace EFCore.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Erro: {ex}");
+                return BadRequest($"Error: {ex}");
             }
         }
 
@@ -52,11 +52,33 @@ namespace EFCore.WebAPI.Controllers
                     return Ok("Bazinga");
                 }
 
-                return Ok("Não encontrado");
+                return Ok("Hero Not Found");
             }
             catch (Exception ex)
             {
-                return BadRequest($"Erro: {ex}");
+                return BadRequest($"Error: {ex}");
+            }
+        }
+
+        [HttpDelete("Delete/{id}")]
+        public ActionResult Delete(int id)
+        {
+            try
+            {
+                var hero = _context.Heroes.FirstOrDefault(h => h.Id == id);
+
+                if (hero != null)
+                {
+                    _context.Remove(hero);
+                    _context.SaveChanges();
+                    return Ok("Hero Deleted");
+                }
+
+                return Ok("Hero Not Found");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex}");
             }
         }
     }
