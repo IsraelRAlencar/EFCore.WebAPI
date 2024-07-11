@@ -1,6 +1,7 @@
 ﻿using EFCore.Domain;
 using EFCore.Repo;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EFCore.WebAPI.Controllers
@@ -9,19 +10,39 @@ namespace EFCore.WebAPI.Controllers
     [ApiController]
     public class BattleController : Controller
     {
-        private readonly HeroContext _context;
+        private readonly IEFCoreRepository _repo;
 
-        public BattleController(HeroContext context)
+        public BattleController(IEFCoreRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         [HttpGet]
-        public ActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                return Ok(new Battle());
+                var battles = await _repo.GetAllBattles(true);
+                return Ok(battles);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex}");
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var battle = await _repo.GetBattleById(id, true);
+
+                if (battle != null)
+                {
+                    return Ok(battle);
+                }
+                return Ok("Battle Not Found");
             }
             catch (Exception ex)
             {
@@ -30,30 +51,37 @@ namespace EFCore.WebAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult Post(Battle model)
+        public async Task<IActionResult> Post(Battle model)
         {
             try
             {
-                _context.Battles.Add(model);
-                _context.SaveChanges();
+                _repo.Add(model);
 
-                return Ok("Bazinga");
+                if (await _repo.SaveChangeAsync()) {
+                    return Ok("Bazinga");
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest($"Error: {ex}");
             }
+
+            return BadRequest("An error has occured");
         }
 
-        [HttpPut]
-        public ActionResult Put(int id, Battle model)
+        [HttpPut("Update/{id}")]
+        public async Task<IActionResult> Put(int id, Battle model)
         {
             try
             {
-                if (_context.Battles.AsNoTracking().FirstOrDefault(b => b.Id == id) != null) {
-                    _context.Battles.Update(model);
-                    _context.SaveChanges();
-                    return Ok("Bazinga");
+                var battle = await _repo.GetBattleById(id);
+
+                if (battle != null) {
+                    _repo.Update(model);
+
+                    if (await _repo.SaveChangeAsync()) {
+                        return Ok("Bazinga");
+                    }
                 }
 
                 return Ok("Battle Not Found");
@@ -65,25 +93,27 @@ namespace EFCore.WebAPI.Controllers
         }
 
         [HttpDelete("Delete/{id}")]
-        public ActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                var battle = _context.Battles.FirstOrDefault(b => b.Id == id);
-
+                var battle = await _repo.GetBattleById(id);
                 if (battle != null)
                 {
-                    _context.Battles.Remove(battle);
-                    _context.SaveChanges();
-                    return Ok("Battle Deleted");
-                }
+                    _repo.Delete(battle);
 
+                    if (await _repo.SaveChangeAsync()) {
+                        return Ok("Battle Deleted");
+                    }
+                }
+                
                 return Ok("Battle Not Found");
             }
             catch (Exception ex)
             {
                 return BadRequest($"Error: {ex}");
             }
+
         }
     }
 }
