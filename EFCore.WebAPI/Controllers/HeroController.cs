@@ -10,31 +10,32 @@ namespace EFCore.WebAPI.Controllers
     [ApiController]
     public class HeroController : Controller
     {
-        private readonly HeroContext _context;
-        public HeroController(HeroContext context)
+        private readonly IEFCoreRepository _repo;
+
+        public HeroController(IEFCoreRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         [HttpGet]
-        public ActionResult Get() {
+        public async Task<IActionResult> Get() {
             try
             {
-                return Ok(new Hero());
+                var heroes = await _repo.GetAllHeroes(true);
+                return Ok(heroes);
             }
             catch (Exception ex) {
                 return BadRequest($"Error: {ex}");
             }
         }
 
-        [HttpPost]
-        public ActionResult Post(Hero model) {
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
             try
             {
-                _context.Heroes.Add(model);
-                _context.SaveChanges();
-
-                return Ok("Bazinga");
+                var hero = await _repo.GetHeroById(id, true);
+                return Ok(hero);
             }
             catch (Exception ex)
             {
@@ -42,14 +43,34 @@ namespace EFCore.WebAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, Hero model) {
+        [HttpPost]
+        public async Task<IActionResult> Post(Hero model) {
             try
             {
-                if (_context.Heroes.AsNoTracking().FirstOrDefault(h => h.Id == id) != null) {
-                    _context.Update(model);
-                    _context.SaveChanges();
-                    return Ok("Bazinga");
+                _repo.Add(model);
+                if (await _repo.SaveChangeAsync()) {
+                    return Ok("Bazinga");            
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex}");
+            }
+
+            return BadRequest("An error has occured");
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, Hero model) {
+            try
+            {
+                var hero = await _repo.GetHeroById(id);
+                if (hero != null) {
+                    _repo.Update(model);
+                    if (await _repo.SaveChangeAsync()) 
+                    {
+                        return Ok("Bazinga");
+                    }
                 }
 
                 return Ok("Hero Not Found");
@@ -61,17 +82,19 @@ namespace EFCore.WebAPI.Controllers
         }
 
         [HttpDelete("Delete/{id}")]
-        public ActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                var hero = _context.Heroes.FirstOrDefault(h => h.Id == id);
+                var hero = _repo.GetHeroById(id);
 
                 if (hero != null)
                 {
-                    _context.Remove(hero);
-                    _context.SaveChanges();
-                    return Ok("Hero Deleted");
+                    _repo.Delete(hero);
+                    if (await _repo.SaveChangeAsync())
+                    {
+                        return Ok("Hero Deleted");
+                    }
                 }
 
                 return Ok("Hero Not Found");
